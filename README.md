@@ -1,4 +1,4 @@
-consultantCalc
+endless
 ======
 
-This is a simple calculator to figure out daily/hourly/yearly pay rates, taking into account all relevant factors and factoring for whatever.
+Endless is a tablet-focused web app experience that allows a user to scroll in multiple directions to reveal content.
