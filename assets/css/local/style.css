@@ -37,11 +37,13 @@ section {
 }
 
 .visible-frame {
-	overflow: auto;
+	overflow: hidden;
 }
 
 .frame-container {
 	width: 3072px;
+	padding: 500px;
+	overflow: auto;
 }
 
 section {
