@@ -57,7 +57,7 @@ body {
 }
 
 body.delayed {
-	background-image: url(../../images/low_contrast_linen.png);
+	background-image: url(/assets/images/low_contrast_linen.png);
 	background-repeat: repeat;
 }
 

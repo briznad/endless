@@ -100,8 +100,9 @@
 	    	});
 		},
 		attachClick = function () {
-			$objectCache.tapTarget.on('tap', function (e) {
+			$objectCache.tapTarget.on('click', function (e) {
 	    		//console.log(e);
+	    		e.stopImmediatePropagation();
 	    		doSlide($(this).data('slideDir'));
 	    	});
 		},
@@ -206,6 +207,9 @@
 				'-o-transform': 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)',
 				transform: 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)'
 	    	});
+
+	    	// move back to center
+    		$objectCache.grid.scrollTo('.row-6 > .col-6');
 
 		},
 		initWorld = function () {
