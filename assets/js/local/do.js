@@ -1,21 +1,12 @@
-(function () { // store vars in a privately scoped anonymous function
+;(function ($) { // store vars in a privately scoped anonymous function
 
 	document.ontouchmove = function (e) { // prevent default up/down page scrolling on iOS
 		e.preventDefault();
 	};
 
-	var $activePanels = null,
-		initFrameSize = function () {
-			if (window.innerWidth > 1024) { // if loading on a desktop reduce the height to allow for a pretty frame
-	    		var frameHeight = window.innerHeight - 80;
-	    	} else { // on a tablet use full available height
-	    		var frameHeight = window.innerHeight;
-	    	}
-
-	    	$('.visible-frame, section').css('height', frameHeight);
-
-	    	location.hash = 'check1';
-	    	location.hash = 'endless';
+	var $objectCache = {
+			row: {},
+			col: {}
 		},
 		frameImgs = _.shuffle([
 			'abstract_macro.jpg',
@@ -75,137 +66,242 @@
 			'wet_glass.jpg',
 			'white_people.jpg',
 			'wilting_daisies.jpg'
-		]),
+		]).slice(0, 11), // shuffle all available images, then save the first 11
 		imgPlease = function () { // return an image and rotate the list
 			frameImgs.push(frameImgs.shift()); // remove the first element and add it to the end of the list
 			return frameImgs[0]; // supply the current first image in the list
 		},
-		theKnownWorld = {
-			'0x1': '',
-			'-1x0': '',
-			'0x0': '',
-			'1x0': '',
-			'0x-1': ''
-		},
 		activeFrame = {
-			coordX: 0,
-			coordY: 0
+			row: 6,
+			col: 6
 		},
 		drawGrid = function () {
 
-			$('.frameUp').data('coord-x', activeFrame.coordX).data('coord-y', activeFrame.coordY + 1);
-			$('.frameLeft').data('coord-x', activeFrame.coordX - 1).data('coord-y', activeFrame.coordY);
-			$('.frameCenter').data('coord-x', activeFrame.coordX).data('coord-y', activeFrame.coordY);
-			$('.frameRight').data('coord-x', activeFrame.coordX + 1).data('coord-y', activeFrame.coordY);
-			$('.frameDown').data('coord-x', activeFrame.coordX).data('coord-y', activeFrame.coordY - 1);
+			//
 
-			$activePanels.each( function (index, item) {
-	    		var tempCoordString = $(this).data('coord-x') + 'x' + $(this).data('coord-y');
-
-	    		if (theKnownWorld[tempCoordString] == undefined || theKnownWorld[tempCoordString] == '') theKnownWorld[tempCoordString] = imgPlease(); // if the given coordinates don't yet have an image associated, set an image
-
-	    		$(this).css('background-image', 'url(assets/images/frames/' + theKnownWorld[tempCoordString] + ')');
+		},
+		attachSwipe = function () {
+			$objectCache.body.on('swipeLeft swipeRight swipeUp swipeDown', function (e) {
+	    		//console.log(e);
+	    		switch (e.type) {
+					case 'swipeLeft':
+						doSlide('right');
+						break;
+					case 'swipeRight':
+						doSlide('left');
+						break;
+					case 'swipeUp':
+						doSlide('down');
+						break;
+					case 'swipeDown':
+						doSlide('up');
+						break;
+				}
 	    	});
 		},
-		doSwipe = function (swipeType) {
+		attachClick = function () {
+			$objectCache.tapTarget.on('tap', function (e) {
+	    		//console.log(e);
+	    		doSlide($(this).data('slideDir'));
+	    	});
+		},
+		attachType = function () {
+			$objectCache.body.on('keydown', function (e) {
+	    		//console.log(e);
+	    		switch (e.which) {
+					case 37:
+						doSlide('left');
+						break;
+					case 38:
+						doSlide('up');
+						break;
+					case 39:
+						doSlide('right');
+						break;
+					case 40:
+						doSlide('down');
+						break;
+				}
+	    	});
+		},
+		doSlide = function (slideDir) { // slide in any primary direction: up, down, left, or right
 
-			switch (swipeType) {
-				case 'swipeLeft':
-					activeFrame.coordX++;
+			function quickSlide() {
+				$objectCache.grid.scrollTo('.row-' + activeFrame.row + ' > .col-' + activeFrame.col, 750, {
+					easing: 'easeOutExpo'
+				});
+			}
+
+			function longSlide() {
+				$objectCache.grid.scrollTo('.row-' + activeFrame.row + ' > .col-' + activeFrame.col, 3000, {
+					easing: 'easeInOutBack'
+				});
+			}
+
+			switch (slideDir) {
+				case 'left':
+					activeFrame.col--;
 					break;
-				case 'swipeRight':
-					activeFrame.coordX--;
+				case 'right':
+					activeFrame.col++;
 					break;
-				case 'swipeUp':
-					activeFrame.coordY--;
+				case 'up':
+					activeFrame.row--;
 					break;
-				case 'swipeDown':
-					activeFrame.coordY++;
+				case 'down':
+					activeFrame.row++;
 					break;
 			}
 
-			$('.visible-frame').scrollTo('.' + swipeType, 1000, {
-				easing: 'easeOutExpo',
-				onAfter: function () {
-					$('.frameCenter').css('background-image', 'url(assets/images/frames/' + theKnownWorld[activeFrame.coordX + 'x' + activeFrame.coordY] + ')');
-					$('.visible-frame').scrollTo('.frameCenter', {
-						onAfter: function () {
-							drawGrid();
-							attachSwipeEvent();
-						}
-					});
-				}
-			});
-
-			preAssignImages();
+			// around the world?
+			if (activeFrame.row < 1) {
+				activeFrame.row = 11;
+				longSlide();
+			} else if (activeFrame.row > 11) {
+				activeFrame.row = 1;
+				longSlide();
+			} else if (activeFrame.col < 1) {
+				activeFrame.col = 11;
+				longSlide();
+			} else if (activeFrame.col > 11) {
+				activeFrame.col = 1;
+				longSlide();
+			} else {
+				quickSlide();
+			}
 
 		},
-		preAssignImages = function () {
-			var neighborFrames = [];
-			_(3).times(function (n) {
-				n++;
-				neighborFrames.push((activeFrame.coordX + n) + 'x' + activeFrame.coordY);
-				neighborFrames.push((activeFrame.coordX - n) + 'x' + activeFrame.coordY);
-				neighborFrames.push(activeFrame.coordX + 'x' + (activeFrame.coordY + n));
-				neighborFrames.push(activeFrame.coordX + 'x' + (activeFrame.coordY - n));
-				neighborFrames.push((activeFrame.coordX + n) + 'x' + (activeFrame.coordY + n));
-				neighborFrames.push((activeFrame.coordX - n) + 'x' + (activeFrame.coordY - n));
+		initFrameSize = function () {
+			var iWidth = parseInt(window.innerWidth),
+				iHeight = parseInt(window.innerHeight),
+				iDiag = null,
+				topLeftAngle = null,
+				skewAngle = null;
+
+	    	$('body, .visible-frame, .frame-col').css({
+	    		width: iWidth,
+	    		height: iHeight
+	    	});
+	    	$('.frame-container').css({
+	    		width: (iWidth * 11) + 1000,
+	    		height: (iHeight * 11) + 1000
+	    	});
+
+	    	/* special maths to position tap targets correctly */
+	    	// 1) find the hypotenuse/diag measure of the screen using the Pythagorean theorem
+	    	iDiag = Math.sqrt(Math.pow(iWidth, 2) + Math.pow(iHeight, 2));
+			// 2) drawing a mental triangle with the hypotenuse running from the top left of the page to the bottom right, find the upper left angle using the Law of cosines, then convert the output from radians to degrees
+			topLeftAngle = Math.acos(((Math.pow(iDiag, 2) + Math.pow(iWidth, 2) ) - Math.pow(iHeight, 2)) / (2 * iDiag * iWidth)) * (180 / Math.PI);
+			// 3) find the skew angle using the previous solved angle
+			skewAngle = 90 - (2 * topLeftAngle);
+			/* /special maths to position tap targets correctly */
+
+	    	$objectCache.tapTargetContainer.css({
+	    		width: iDiag,
+				height: iDiag,
+				top: (iDiag / 2) * -1,
+				'-webkit-transform': 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)',
+				'-moz-transform': 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)',
+				'-ms-transform': 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)',
+				'-o-transform': 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)',
+				transform: 'rotate(' + topLeftAngle + 'deg) skewX(-' + skewAngle + 'deg)'
+	    	});
+
+		},
+		initWorld = function () {
+			/* build grid */
+
+			var tempGridFragment = '';
+
+			_(11).times(function (n) {
+				var tempNum = n + 1;
+				tempGridFragment += '<div class="frame-row row-' + tempNum + '">';
+				_(11).times(function (n) {
+					var tempNum = n + 1,
+						tempImg = imgPlease();
+					tempGridFragment += '<img class="frame-col col-' + tempNum + '" src="assets/images/frames/' + tempImg + '" alt="' + tempImg.split('.')[0].replace('_', ' ') + '" />';
+				});
+				tempGridFragment += '</div>';
+				imgPlease(); // rotate 1 more time
 			});
 
-			$.each(neighborFrames, function (index, item) {
-	    		if (theKnownWorld[item] == undefined || theKnownWorld[item] == '') theKnownWorld[item] = imgPlease(); // if the given coordinates don't yet have an image associated, set an image
+			$('.frame-container').html(tempGridFragment);
+
+			/* /build grid */
+
+			/* cache DOM objects */
+
+			$objectCache.body = $('body');
+
+			$objectCache.grid = $('.visible-frame');
+
+			_(11).times(function (n) {
+				var tempNum = n + 1;
+				$objectCache.row[tempNum] = $objectCache.grid.find('.row-' + tempNum);
+				$objectCache.col[tempNum] = $objectCache.grid.find('.col-' + tempNum);
+			});
+
+			$objectCache.loadingOverlay = $('.loading-overlay');
+
+			$objectCache.tapTarget = $('.tap-target');
+
+			$objectCache.tapTargetContainer = $objectCache.tapTarget.parent();
+
+			/* /cache DOM objects */
+
+			/* register event handlers */
+
+			// update frame height when window is resized or orientation changes
+	 		$(window).on('orientationchange resize', function (e) {
+	    		initFrameSize();
 	    	});
+
+			// register swipe event
+	    	attachSwipe();
+	    	attachClick();
+	    	attachType();
+
+			/* /register event handlers */
+
+	    	// initialize frame height
+	 		initFrameSize();
+
+	    	// draw the grid for the first time
+	    	drawGrid();
+
+	    	// once the page has fully loaded, run image prefetching
+	    	$(window).load(function () {
+	    		preFetchImages();
+
+	    		$objectCache.body.addClass('delayed');
+
+	    		// start it off in the middle
+	    		$objectCache.grid.scrollTo('.row-6 > .col-6');
+
+	    		//$objectCache.loadingOverlay.animate({ opacity: 0 }, 'slow');
+				var t = setTimeout(function () {
+					$objectCache.loadingOverlay.fadeOut(1000);
+				}, 250);
+			});
 		},
 		preFetchCount = 0,
 		preFetchImages = function () {
-
-			if (preFetchCount < frameImgs.length) preFetchNext();
-
-			function preFetchNext () {
-				var dummyImageObject = new Image();
-				dummyImageObject.src = 'assets/images/frames/' + frameImgs[preFetchCount];
-				dummyImageObject.onload = function () {
-					preFetchCount++;
-					t = setTimeout(preFetchImages, 1000);
-				};
-			}
-		},
-		attachSwipeEvent = function () {
-			$('body').one('swipeLeft swipeRight swipeUp swipeDown', function (e) {
-	    		doSwipe(e.type);
-	    	});
+			var dummyImageObject = new Image();
+			dummyImageObject.src = 'assets/images/frames/' + frameImgs[preFetchCount];
+			dummyImageObject.onload = function () {
+				preFetchCount++;
+				if (preFetchCount < frameImgs.length) preFetchImages();
+			};
 		};
 
     /* when DOM is ready, bind some shit */
 
     $(function() {
 
-    	$activePanels = $('section').not('.placeholder');
-
-    	// redirect to the "start" frame
-    	location.hash = 'endless';
-
-    	// initialize frame height
- 		initFrameSize();
-
- 		// update frame height when window is resized or orientation changes
- 		$(window).on('orientationchange resize', function (e) {
-    		initFrameSize();
-    	});
-
-    	// draw the grid for the first time
-    	drawGrid();
-
- 		// register swipe event
-    	attachSwipeEvent();
-
-    	// once the page has fully loaded, run image prefetching
-    	$(window).load(function () {
-    		preFetchImages();
-		});
+    	initWorld();
 
 	});
 
     /* /when DOM is ready, bind some shit */
 
-})();
+})(jQuery);
