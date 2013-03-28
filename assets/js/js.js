@@ -4,4 +4,6 @@
 
 //@import url('plugins/jquery.zepto-touch.js');
 
+//@import url('plugins/jquery.ghostclick.js');
+
 //@import url('local/do.js');

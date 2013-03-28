@@ -100,10 +100,10 @@
 	    	});
 		},
 		attachClick = function () {
-			$objectCache.tapTarget.on('click', function (e) {
+			$objectCache.tapTarget.on('tap click', function (e) {
 	    		//console.log(e);
-	    		e.stopImmediatePropagation();
 	    		doSlide($(this).data('slideDir'));
+	    		return false;
 	    	});
 		},
 		attachType = function () {
